@@ -1,0 +1,99 @@
+---
+title: Buckets
+description: Quotas, and CORS for uploads straight from the browser.
+---
+
+Create buckets with `aether bucket create`, the [web console](/docs/web-console)
+or any S3 client (with a key that may create buckets). This page covers the
+two settings a bucket can have.
+
+## Quotas
+
+A quota limits a bucket's total size, its number of objects, or both.
+
+```sh
+aether bucket quota invoices --max-bytes 50GiB
+aether bucket quota invoices --max-objects 100000   # the size limit stays
+aether bucket quota invoices --max-bytes none        # remove one limit
+aether bucket quota invoices --clear                 # remove both
+aether bucket show invoices                          # usage and quota
+```
+
+Sizes take `KB`, `MB`, `GB`, `TB` (powers of 1000) or `KiB`, `MiB`, `GiB`, `TiB`
+(powers of 1024). In the console, open the bucket and use **Edit** next to
+Quota. The admin API takes `PUT /api/v1/buckets/{name}/quota` with
+`{"max_bytes": 53687091200, "max_objects": null}` (`null` is no limit).
+
+How it behaves:
+
+- A write that would take the bucket past a limit fails with
+  **`QuotaExceeded`** (HTTP 403). S3 has no quotas, so this is not an AWS error
+  code; it is the one Ceph's S3 server uses.
+- Uploads are refused **before their data is sent** whenever the size is known:
+  a PUT by its length, and a multipart upload at the first part that would go
+  past the limit.
+- The check runs inside the write's own transaction, so uploads running at the
+  same time cannot overshoot together.
+- Lowering a limit below current usage keeps the data. Writes that do not grow
+  the bucket (deletes, overwrites with smaller objects) still work, so space can
+  be freed.
+- `aether_bucket_quota_bytes` and `aether_bucket_quota_objects` report the
+  limits for [alerts](/docs/monitoring#metrics).
+
+## CORS: uploads from the browser
+
+By default a web page cannot call the S3 API on another origin, so uploads go
+through your own server. With CORS rules on the bucket, a page can upload
+straight to Aether with a **presigned URL** your server hands out: the secret
+never reaches the browser, and the data does not pass through your server.
+
+Allow your app's origin, with the S3 calls it makes:
+
+```json title="cors.json"
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["https://app.example.com"],
+      "AllowedMethods": ["GET", "PUT"],
+      "AllowedHeaders": ["Content-Type"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}
+```
+
+```sh
+aws --endpoint-url http://localhost:9000 s3api put-bucket-cors --bucket uploads --cors-configuration file://cors.json
+aws --endpoint-url http://localhost:9000 s3api get-bucket-cors --bucket uploads
+aws --endpoint-url http://localhost:9000 s3api delete-bucket-cors --bucket uploads
+```
+
+Your server signs an upload URL (here with the AWS SDK for JavaScript):
+
+```ts title="server"
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+const s3 = new S3Client({ forcePathStyle: true }); // endpoint and key from AWS_* variables
+const url = await getSignedUrl(s3, new PutObjectCommand({ Bucket: "uploads", Key: "report.pdf" }), {
+  expiresIn: 300,
+});
+```
+
+and the page sends the file to it:
+
+```ts title="browser"
+const res = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+```
+
+Rules follow S3:
+
+- Up to 100 rules per bucket; the first rule matching the origin, the method and
+  the requested headers applies. Methods: `GET`, `PUT`, `POST`, `DELETE`, `HEAD`.
+- An origin or header may contain one `*`, e.g. `https://*.example.com`. `*` alone
+  allows every origin.
+- Only the bucket's owners, admin keys and the root key can change the rules.
+  The console shows them on the bucket's page.
+- **CORS does not grant access.** Every request still needs a valid signature or
+  presigned URL; CORS only lets the browser read the response.

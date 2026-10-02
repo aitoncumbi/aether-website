@@ -29,6 +29,7 @@ variables win over the file. Prefer them for the root secret.
 | `secret_key` | (required) | Root secret. Prefer `AETHER_S3__SECRET_KEY` over writing it in the file. |
 | `max_object_size` | `5368709120` (5 GiB) | Largest single PUT in bytes. |
 | `allow_sig_v2` | `false` | Accept legacy Signature Version 2 requests and presigned URLs. |
+| `domains` | `[]` | Base domains for virtual-hosted-style requests: with `"s3.example.com"`, `photos.s3.example.com/key` addresses bucket `photos`. Other hosts stay path-style. As an environment variable: `AETHER_S3__DOMAINS='["s3.example.com"]'`. |
 | `public_url` | unset | The URL clients use to reach the S3 API, shown in the console and used in share links. Unset: the host the console was opened on, with the port of `listen`. |
 
 ## `[admin]`

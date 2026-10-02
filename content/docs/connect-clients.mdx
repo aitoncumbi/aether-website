@@ -6,7 +6,7 @@ description: Use the AWS CLI, boto3, rclone or any S3 SDK with Aether.
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 
 Point any S3 client at the endpoint with **path-style addressing**
-(`http://host:9000/bucket/key`) and **Signature Version 4**. The examples use
+(`http://host:9000/bucket/key`, or [virtual-hosted style](#virtual-hosted-style) once configured) and **Signature Version 4**. The examples use
 the root key; applications should use [their own](/docs/access-keys).
 
 <Tabs items={['AWS CLI', 'boto3', 'rclone']}>
@@ -67,6 +67,22 @@ rclone copy ./exports aether:reports/exports
 
 Clients sign requests for a region. Aether uses `us-east-1` unless
 `s3.region` says otherwise; use the same value in your client.
+
+## Virtual-hosted style
+
+Some clients put the bucket in the host name: `http://photos.s3.example.com/key`
+instead of `http://s3.example.com/photos/key`. Tell Aether its base domain:
+
+```toml title="aether.toml"
+[s3]
+domains = ["s3.example.com"]
+```
+
+Then point wildcard DNS for `*.s3.example.com` at the server and, with
+[HTTPS](/docs/https), use a certificate that covers `*.s3.example.com`. Requests
+to any other host, including `s3.example.com` itself, an IP address or
+`localhost`, stay path-style, so existing clients keep working. The AWS SDKs
+use virtual-hosted style when `forcePathStyle` / `force_path_style` is off.
 
 ## Clients that only speak SigV2
 
