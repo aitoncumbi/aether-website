@@ -1,0 +1,76 @@
+---
+title: Connect clients
+description: Use the AWS CLI, boto3, rclone or any S3 SDK with Aether.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+Point any S3 client at the endpoint with **path-style addressing**
+(`http://host:9000/bucket/key`) and **Signature Version 4**. The examples use
+the root key; applications should use [their own](/docs/access-keys).
+
+<Tabs items={['AWS CLI', 'boto3', 'rclone']}>
+<Tab value="AWS CLI">
+
+```sh
+export AWS_ACCESS_KEY_ID=admin AWS_SECRET_ACCESS_KEY=change-me-please AWS_DEFAULT_REGION=us-east-1
+aws --endpoint-url http://localhost:9000 s3 mb s3://reports
+aws --endpoint-url http://localhost:9000 s3 cp ./q3.pdf s3://reports/2026/q3.pdf
+aws --endpoint-url http://localhost:9000 s3 ls s3://reports --recursive
+```
+
+AWS CLI v1 presigns URLs with the deprecated SigV2 unless its config sets
+`s3.signature_version = s3v4`.
+
+</Tab>
+<Tab value="boto3">
+
+```python
+import boto3
+from botocore.config import Config
+
+s3 = boto3.client(
+    "s3",
+    endpoint_url="http://localhost:9000",
+    aws_access_key_id="admin",
+    aws_secret_access_key="change-me-please",
+    region_name="us-east-1",
+    # s3v4: otherwise boto3 presigns URLs with the legacy SigV2.
+    config=Config(signature_version="s3v4", s3={"addressing_style": "path"}),
+)
+s3.put_object(Bucket="reports", Key="hello.txt", Body=b"hello")
+```
+
+</Tab>
+<Tab value="rclone">
+
+```ini title="rclone.conf"
+[aether]
+type = s3
+provider = Other
+endpoint = http://localhost:9000
+region = us-east-1
+access_key_id = admin
+secret_access_key = change-me-please
+force_path_style = true
+```
+
+```sh
+rclone mkdir aether:reports
+rclone copy ./exports aether:reports/exports
+```
+
+</Tab>
+</Tabs>
+
+## Region
+
+Clients sign requests for a region. Aether uses `us-east-1` unless
+`s3.region` says otherwise; use the same value in your client.
+
+## Clients that only speak SigV2
+
+`s3.allow_sig_v2 = true` accepts Signature Version 2 requests and presigned URLs
+for clients that cannot be changed. Prefer configuring clients for SigV4.
+
+See [Compatibility](/docs/compatibility) for what is not supported yet.

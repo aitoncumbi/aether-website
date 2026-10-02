@@ -1,0 +1,83 @@
+---
+title: Configuration
+description: Every setting, with its default, as TOML or environment variables.
+---
+
+Aether reads `aether.toml` from the working directory when it exists, or the
+file given with `--config <file>` (or `AETHER_CONFIG`). Start from
+[`aether.example.toml`](https://github.com/aitoncumbi/Aeather/blob/main/aether_backend/aether.example.toml).
+
+Every setting can also come from the environment as `AETHER_<SECTION>__<KEY>`,
+for example `AETHER_S3__SECRET_KEY` or `AETHER_TLS__CERT_FILE`. Environment
+variables win over the file. Prefer them for the root secret.
+
+## `[storage]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `data_dir` | `"data"` | Where the metadata database (`meta.redb`) and block files live. |
+| `block_size` | `67108864` (64 MiB) | Uploads are split into blocks of at most this many bytes (min 1 MiB). |
+| `inline_threshold` | `4096` | Objects up to this size are stored inside the metadata database. |
+
+## `[s3]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `listen` | `"0.0.0.0:9000"` | Address of the S3 API. |
+| `region` | `"us-east-1"` | Region clients sign requests for. Use the same value in your SDK config. |
+| `access_key` | (required) | Root access key id. |
+| `secret_key` | (required) | Root secret. Prefer `AETHER_S3__SECRET_KEY` over writing it in the file. |
+| `max_object_size` | `5368709120` (5 GiB) | Largest single PUT in bytes. |
+| `allow_sig_v2` | `false` | Accept legacy Signature Version 2 requests and presigned URLs. |
+| `public_url` | unset | The URL clients use to reach the S3 API, shown in the console and used in share links. Unset: the host the console was opened on, with the port of `listen`. |
+
+## `[admin]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `enabled` | `true` | The JSON admin API for keys, permissions, buckets, objects and usage. |
+| `listen` | `"127.0.0.1:9001"` | Address of the admin API, web console and metrics. Loopback only by default. |
+| `console` | `true` | Serve the web console at `http://<listen>/`. |
+
+## `[tls]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `cert_file` | unset | PEM server certificate. Set with `key_file` to serve the S3 API over HTTPS. |
+| `key_file` | unset | PEM private key. |
+| `admin` | `false` | Also serve the admin API over TLS with the same certificate. |
+| `reload_secs` | `60` | How often to check the files for changes. `0` disables reloading. |
+
+## `[http]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `header_timeout_secs` | `30` | Time allowed to send request headers. |
+| `handshake_timeout_secs` | `10` | Time allowed for the TLS handshake. |
+| `body_timeout_secs` | `60` | An upload that sends no data for this long is aborted with `RequestTimeout`. |
+| `shutdown_timeout_secs` | `30` | On shutdown (SIGTERM), how long in-flight requests may take to finish. |
+
+## `[gc]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `grace_secs` | `900` | Blocks of deleted or overwritten objects are kept this long, so downloads already in progress can finish. |
+| `interval_secs` | `30` | How often deleted blocks are collected. |
+| `orphan_grace_secs` | `3600` | Leftovers from interrupted uploads are removed after this long. |
+| `sweep_interval_secs` | `3600` | How often to look for those leftovers. |
+| `abandoned_upload_secs` | `604800` (7 days) | Multipart uploads not completed within this time are aborted and their parts deleted. `0` keeps them forever. |
+
+## `[scrub]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `interval_secs` | `604800` (7 days) | Re-read every block and verify its checksum this often. `0` disables. |
+| `bytes_per_sec` | `67108864` (64 MiB/s) | Read rate limit while scrubbing. `0`: unlimited. |
+
+## `[log]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `level` | `"info"` | Filter directive; `RUST_LOG` overrides it. The S3 protocol library's own per-request error logs stay off unless named, e.g. `"info,s3s=debug"`. |
+| `format` | `"text"` | `"text"` or `"json"`. |
+| `access_log` | `true` | One line per request (target `aether::access`). Query strings are never logged. |

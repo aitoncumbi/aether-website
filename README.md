@@ -1,45 +1,27 @@
-# aether-website
+# Aether website
 
-This is a Next.js application generated with
-[Create Fumadocs](https://github.com/fuma-nama/fumadocs).
+The website and documentation for [Aether](https://github.com/aitoncumbi/Aeather),
+S3-compatible object storage you run on your own servers.
 
-Run development server:
+Built with Next.js and [Fumadocs](https://fumadocs.dev), deployed by Vercel.
 
-```bash
-npm run dev
-# or
-pnpm dev
-# or
-yarn dev
+- `app/(home)/`: the landing page
+- `content/docs/`: the documentation, one MDX file per page; `meta.json` sets the order
+- `public/`: images, such as the console screenshot
+
+## Develop
+
+```sh
+npm ci
+npm run dev          # http://localhost:3000
+npm run lint
+npm run types:check
+npm run build
 ```
 
-Open http://localhost:3000 with your browser to see the result.
+Docs describe the current release of Aether. When a change to Aether changes
+how it is installed, configured or used, update the matching page here.
 
-## Explore
+## License
 
-In the project, you can see:
-
-- `lib/source.ts`: Code for content source adapter, [`loader()`](https://fumadocs.dev/docs/headless/source-api) provides the interface to access your content.
-- `lib/layout.shared.tsx`: Shared options for layouts, optional but preferred to keep.
-
-| Route                     | Description                                            |
-| ------------------------- | ------------------------------------------------------ |
-| `app/(home)`              | The route group for your landing page and other pages. |
-| `app/docs`                | The documentation layout and pages.                    |
-| `app/api/search/route.ts` | The Route Handler for search.                          |
-
-### Fumadocs MDX
-
-Collections are defined with the [Macro API](https://fumadocs.dev/docs/mdx/macro) in `lib/source.ts`.
-
-Read the [Introduction](https://fumadocs.dev/docs/mdx) for further details.
-
-## Learn More
-
-To learn more about Next.js and Fumadocs, take a look at the following
-resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js
-  features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [Fumadocs](https://fumadocs.dev) - learn about Fumadocs
+[MIT](LICENSE)

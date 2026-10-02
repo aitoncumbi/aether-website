@@ -1,0 +1,60 @@
+---
+title: Installation
+description: Run a single Aether node with Docker or from source.
+---
+
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+<Tabs items={['Docker', 'From source']}>
+<Tab value="Docker">
+
+Set the root access key and a long random secret, then start it:
+
+```sh
+git clone https://github.com/aitoncumbi/Aeather.git && cd Aeather
+cp .env.example .env      # set the root access key and a long random secret
+docker compose up -d
+```
+
+`compose.yaml` builds the image and keeps data in a named volume. It publishes
+the S3 API on port 9000, and the admin API, web console and metrics on the
+host's loopback interface only (`127.0.0.1:9001`). The image runs as a non-root
+user, has a health check, and shuts down cleanly on `docker stop`.
+
+Run the CLI inside the container:
+
+```sh
+docker compose exec aether aether status
+```
+
+</Tab>
+<Tab value="From source">
+
+Requires Rust 1.96 or newer, and Node.js 20.9 or newer for the web console.
+
+```sh
+git clone https://github.com/aitoncumbi/Aeather.git && cd Aeather
+(cd console && npm ci && npm run build)   # optional: the web console
+cd aether_backend
+cargo build --release                      # embeds console/out when it exists
+
+AETHER_S3__ACCESS_KEY=admin \
+AETHER_S3__SECRET_KEY=change-me-please \
+AETHER_STORAGE__DATA_DIR=/var/lib/aether \
+./target/release/aether
+```
+
+</Tab>
+</Tabs>
+
+The S3 API listens on port 9000 and the admin API on `127.0.0.1:9001`.
+
+The root key set here can do everything. Keep it for administration and give
+each application its own key: see [Access keys](/docs/access-keys).
+
+## Next steps
+
+- [Connect a client](/docs/connect-clients) and create your first bucket.
+- Serve the S3 API over [HTTPS](/docs/https).
+- Review the [configuration](/docs/configuration): every setting can come from
+  `aether.toml` or the environment.

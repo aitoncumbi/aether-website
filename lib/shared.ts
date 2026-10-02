@@ -1,16 +1,19 @@
 import { createGetUrl } from 'fumadocs-core/source';
 
-export const appName = 'My App';
+export const appName = 'Aether';
 export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
 
-// fill this with your actual GitHub info, for example:
+/** Where the docs' source lives, for "Edit on GitHub" links. */
 export const gitConfig = {
-  user: 'fuma-nama',
-  repo: 'fumadocs',
+  user: 'aitoncumbi',
+  repo: 'aether-website',
   branch: 'main',
 };
+
+/** The Aether server itself. */
+export const projectUrl = 'https://github.com/aitoncumbi/Aeather';
 
 const getContentUrl = createGetUrl(docsContentRoute);
 

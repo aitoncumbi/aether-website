@@ -1,0 +1,59 @@
+---
+title: Access keys
+description: Give each application its own key, with permissions per bucket.
+---
+
+The root key from the configuration can do everything. Create one key per
+application instead, with only the buckets it needs.
+
+## With the CLI
+
+Run these on the server host: the `aether` commands read the same config file
+and talk to the admin API with the root key.
+
+```sh
+aether bucket create invoices
+aether key create "billing service" --grant invoices=rw
+# Access key id: AK64OA2XIS00HEL7LJ95
+# Secret key:    kC0ZGtTTxQeHxEThsiwFD/rHagA4UrpgDhkLVZrR
+# Save the secret key now: it cannot be shown again.
+
+aether key list
+aether key grant AK64OA2XIS00HEL7LJ95 reports r   # r: read, w: write, o: owner
+aether key disable AK64OA2XIS00HEL7LJ95           # takes effect immediately
+aether bucket show invoices                       # usage and which keys have access
+aether status
+```
+
+From another machine, pass `--url`, `--access-key` and `--secret-key`, or set
+`AETHER_ADMIN_URL`, `AETHER_ADMIN_ACCESS_KEY` and `AETHER_ADMIN_SECRET_KEY`.
+For an HTTPS admin API with a private CA, add `--ca-cert`.
+
+## Permissions
+
+| Permission | Allows |
+| --- | --- |
+| `r` (read) | List and download objects |
+| `w` (write) | Upload, copy and delete objects, including multipart uploads |
+| `o` (owner) | Delete the bucket (and, later, change its settings) |
+
+Permissions combine and do not imply each other: an owner that should also read
+and write needs `rwo`. Either `r` or `w` lets a key see in-progress multipart
+uploads.
+
+Key-wide options for `aether key create`:
+
+- `--admin`: full access to every bucket and to the admin API and console.
+- `--create-buckets`: the key may create buckets, and gets full access (`rwo`) to
+  the buckets it creates.
+- `--import-id` and `--import-secret`: keep an application's existing credentials
+  when migrating from another S3 store.
+
+Every command takes `--json` and prints the admin API's JSON instead of a table.
+The JSON API itself is described in
+[DESIGN.md](https://github.com/aitoncumbi/Aeather/blob/main/docs/DESIGN.md#admin-api).
+
+## In the web console
+
+The [web console](/docs/web-console) creates keys, shows each secret once, and
+edits a key's bucket permissions.

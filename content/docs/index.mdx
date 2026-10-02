@@ -1,13 +1,35 @@
 ---
-title: Hello World
-description: Your first document
+title: Introduction
+description: S3-compatible object storage you run on your own servers.
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+Aether is S3-compatible object storage written in Rust, for teams that run their
+own servers or containers and need object storage for internal applications.
+No AWS account or cloud service is involved: "AWS" in these docs only refers to
+standard S3 client tools.
 
-## What is Next?
+A single node works with the AWS SDKs, the AWS CLI, boto3 and rclone. It
+supports multipart uploads, server-side copies, per-application access keys,
+HTTPS, Prometheus metrics, a Docker image and a web console.
+
+<Callout title="Status">
+  The v1 milestones are complete, but Aether is not yet proven in production. CI
+  drives the clients above against a live server and runs 239 of Ceph's
+  s3-tests. It is a single node with no replication yet, so back up the data
+  directory.
+</Callout>
 
 <Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
+  <Card title="Installation" href="/docs/installation" description="Run Aether with Docker or from source." />
+  <Card title="Connect clients" href="/docs/connect-clients" description="Point the AWS CLI, boto3 or rclone at it." />
+  <Card title="Access keys" href="/docs/access-keys" description="Give each application its own key and buckets." />
+  <Card title="Configuration" href="/docs/configuration" description="Every setting, as TOML or environment variables." />
 </Cards>
+
+## Further reading
+
+The design and plans live with the code:
+
+- [Design](https://github.com/aitoncumbi/Aeather/blob/main/docs/DESIGN.md): architecture and the decisions behind it
+- [Roadmap](https://github.com/aitoncumbi/Aeather/blob/main/docs/ROADMAP.md): what is done and what comes next
+- [Benchmarks](https://github.com/aitoncumbi/Aeather/blob/main/docs/BENCHMARKS.md): baseline numbers and how to reproduce them

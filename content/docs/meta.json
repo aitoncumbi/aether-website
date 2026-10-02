@@ -1,0 +1,14 @@
+{
+  "title": "Aether",
+  "pages": [
+    "index",
+    "installation",
+    "connect-clients",
+    "access-keys",
+    "web-console",
+    "https",
+    "monitoring",
+    "configuration",
+    "compatibility"
+  ]
+}

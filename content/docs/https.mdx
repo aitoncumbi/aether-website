@@ -1,0 +1,33 @@
+---
+title: HTTPS
+description: Serve the S3 API, and optionally the admin API, over TLS.
+---
+
+Set `tls.cert_file` and `tls.key_file` (PEM) to serve the S3 API over HTTPS.
+`tls.admin = true` does the same for the admin API and web console.
+
+```toml title="aether.toml"
+[tls]
+cert_file = "/etc/aether/tls.crt"
+key_file = "/etc/aether/tls.key"
+admin = true
+```
+
+Renewed certificate files are picked up within a minute (`tls.reload_secs`),
+without a restart.
+
+## Self-signed certificate for testing
+
+```sh
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 365 \
+  -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
+  -addext "basicConstraints=critical,CA:FALSE" -keyout tls.key -out tls.crt
+```
+
+The certificate must be a server (end-entity) certificate, not a CA, hence
+`basicConstraints=critical,CA:FALSE`. Clients then need to trust it:
+
+```sh
+aws --ca-bundle tls.crt --endpoint-url https://localhost:9000 s3 ls
+aether --ca-cert tls.crt status
+```
