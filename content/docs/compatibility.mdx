@@ -3,7 +3,7 @@ title: Compatibility
 description: What works today, and what is not supported yet.
 ---
 
-CI drives the AWS CLI v2, boto3 and rclone against a live server, and runs 239
+CI drives the AWS CLI v2, boto3 and rclone against a live server, and runs 247
 of Ceph's [s3-tests](https://github.com/ceph/s3-tests).
 
 ## Limitations
@@ -12,9 +12,11 @@ of Ceph's [s3-tests](https://github.com/ceph/s3-tests).
   with the deprecated SigV2 unless told otherwise; see
   [Connect clients](/docs/connect-clients). `s3.allow_sig_v2 = true` accepts SigV2
   for clients that cannot be changed.
-- **Path-style addressing only** (`http://host:9000/bucket/key`).
+- **Path-style addressing by default** (`http://host:9000/bucket/key`).
+  Virtual-hosted style (`http://bucket.s3.example.com/key`) needs a base domain
+  in `s3.domains`; see [Connect clients](/docs/connect-clients#virtual-hosted-style).
 - **Not supported yet:** versioning, server-side encryption, object tagging and
-  lifecycle rules (v2 on the roadmap); CORS (v1.1); ACLs and bucket policies
+  lifecycle rules (v2 on the roadmap); ACLs and bucket policies
   (per-key bucket permissions replace them); object lock; browser POST uploads.
   Requests that need these fail with `NotImplemented` rather than being ignored.
 - **One node only:** no replication yet, so back up the data directory. See the

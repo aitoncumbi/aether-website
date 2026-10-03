@@ -110,7 +110,7 @@ export default function HomePage() {
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">Where it stands</h2>
           <p className="mt-4 text-lg leading-relaxed text-fd-muted-foreground">
             The first version is complete for a single node, but not yet proven in production. CI runs the AWS CLI,
-            boto3 and rclone against a live server, plus 239 of Ceph&apos;s s3-tests. Replication, versioning and
+            boto3 and rclone against a live server, plus 247 of Ceph&apos;s s3-tests. Replication, versioning and
             encryption at rest are on the roadmap.
           </p>
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">

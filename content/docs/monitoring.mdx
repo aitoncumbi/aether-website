@@ -18,6 +18,15 @@ Prometheus format at `GET /metrics` on the admin port, without credentials:
 requests by operation and status, latency, bytes in and out, per-bucket objects
 and bytes, disk space, garbage collection and scrubbing.
 
+Two worth alerting on:
+
+- **Quotas:** `aether_bucket_bytes / aether_bucket_quota_bytes` (and the same for
+  objects) is how full a bucket with a [quota](/docs/buckets#quotas) is. The
+  quota series exist only for buckets with that limit.
+- **Write batching:** small writes are committed in groups, one disk sync for
+  everything waiting. `aether_metadata_writes_total / aether_metadata_commits_total`
+  is the average group size; it grows with load.
+
 <Callout type="warn">
   `/metrics` shows bucket names and sizes without sign-in. The admin port
   listens on loopback by default; keep it that way, or restrict who can reach
