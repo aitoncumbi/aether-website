@@ -30,6 +30,7 @@ variables win over the file. Prefer them for the root secret.
 | `max_object_size` | `5368709120` (5 GiB) | Largest single PUT in bytes. |
 | `allow_sig_v2` | `false` | Accept legacy Signature Version 2 requests and presigned URLs. |
 | `domains` | `[]` | Base domains for virtual-hosted-style requests: with `"s3.example.com"`, `photos.s3.example.com/key` addresses bucket `photos`. Other hosts stay path-style. As an environment variable: `AETHER_S3__DOMAINS='["s3.example.com"]'`. |
+| `allow_sse_c_over_http` | `false` | Accept [customer-provided keys](/docs/encryption#with-the-clients-key-sse-c) over plain HTTP. Only behind a proxy that terminates TLS. |
 | `public_url` | unset | The URL clients use to reach the S3 API, shown in the console and used in share links. Unset: the host the console was opened on, with the port of `listen`. |
 
 ## `[admin]`
@@ -74,6 +75,20 @@ variables win over the file. Prefer them for the root secret.
 | --- | --- | --- |
 | `interval_secs` | `604800` (7 days) | Re-read every block and verify its checksum this often. `0` disables. |
 | `bytes_per_sec` | `67108864` (64 MiB/s) | Read rate limit while scrubbing. `0`: unlimited. |
+
+## `[encryption]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `master_key` | unset | 32 random bytes, base64 (`openssl rand -base64 32`). When set, every new object is [encrypted at rest](/docs/encryption). Prefer `AETHER_ENCRYPTION__MASTER_KEY`, and back it up apart from the data. |
+| `previous_keys` | `[]` | Earlier master keys, so objects they encrypted stay readable after a rotation. |
+
+## `[lifecycle]`
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `interval_secs` | `3600` | How often buckets' [lifecycle rules](/docs/lifecycle) are applied. `0` disables. |
+| `day_secs` | `86400` | Seconds in a lifecycle "day". Only change it to test rules quickly. |
 
 ## `[log]`
 

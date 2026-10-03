@@ -28,6 +28,10 @@ const features = [
     body: 'Prometheus metrics, health endpoints for load balancers, and JSON access logs with a request id on every line.',
   },
   {
+    title: 'Versions and encryption',
+    body: 'Keep every version of an object, expire old data with lifecycle rules, and encrypt at rest with your own master key.',
+  },
+  {
     title: 'HTTPS without restarts',
     body: 'TLS for the S3 and admin APIs. Renewed certificates are picked up within a minute.',
   },
@@ -109,9 +113,9 @@ export default function HomePage() {
         <div className="max-w-3xl">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">Where it stands</h2>
           <p className="mt-4 text-lg leading-relaxed text-fd-muted-foreground">
-            The first version is complete for a single node, but not yet proven in production. CI runs the AWS CLI,
-            boto3 and rclone against a live server, plus 247 of Ceph&apos;s s3-tests. Replication, versioning and
-            encryption at rest are on the roadmap.
+            Versions 1 and 2 are complete for a single node, but not yet proven in production. CI runs the AWS CLI,
+            boto3 and rclone against a live server, plus 321 of Ceph&apos;s s3-tests. Versioning, lifecycle rules and
+            encryption shipped in v2; replication is next on the roadmap.
           </p>
           <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium">
             <Link href="/docs/compatibility" className="text-fd-primary hover:underline">
