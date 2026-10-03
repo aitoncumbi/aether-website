@@ -1,0 +1,83 @@
+---
+title: Backups
+description: Copy a running server to another directory, and restore from it.
+---
+
+Aether is a single node with no replication yet, so backups are what protects
+your data from a lost disk or a deleted bucket. `aether backup` copies a
+running server without stopping it.
+
+## Make a backup
+
+On the server host:
+
+```sh
+aether backup /mnt/backups/aether-2026-10-03
+# Backed up 1834 blocks (52.3 GiB) to /mnt/backups/aether-2026-10-03 in 412.0 s.
+```
+
+With Docker, the compose file mounts a volume at `/backups`. Back up into it,
+then copy the backup off the container:
+
+```sh
+docker compose exec aether aether backup /backups/2026-10-03
+docker compose cp aether:/backups/2026-10-03 ./aether-2026-10-03
+```
+
+Like the other `aether` commands, it talks to the admin API with the root key
+from the config file. From elsewhere, pass `--url`, `--access-key` and
+`--secret-key`; the directory is still a path **on the server**.
+
+The target must be a new or empty directory, outside the data directory.
+Prefer another disk, and copy the backup off the machine afterwards: a backup
+on the same disk does not survive that disk.
+
+## What a backup contains
+
+- **One moment in time.** The metadata is copied as of the moment the backup
+  starts. Uploads, overwrites and deletes after that keep working but are not
+  in the backup.
+- **Everything that moment refers to:** every object, older
+  [versions](/docs/versioning), parts of unfinished multipart uploads, buckets,
+  their settings, and access keys. Deleted data still waiting for garbage
+  collection is left out.
+- **Nothing half-done.** The metadata file, `meta.redb`, appears only after
+  every block has been copied and flushed to disk. A directory without it is an
+  interrupted backup and can be deleted.
+
+Garbage collection pauses while a backup runs, so space freed by deletes
+during the backup is released afterwards.
+
+## Restore
+
+A backup is laid out like a data directory. To restore:
+
+1. Stop the server.
+2. Move the old data directory aside, and copy the backup into its place (or
+   point `storage.data_dir` at the backup).
+3. Start the server.
+
+```sh
+systemctl stop aether
+mv /var/lib/aether /var/lib/aether.old
+cp -a /mnt/backups/aether-2026-10-03 /var/lib/aether
+systemctl start aether
+```
+
+<Callout type="warn" title="Encrypted data needs its master key">
+  With [encryption at rest](/docs/encryption), objects and access-key secrets
+  stay encrypted in the backup. Restoring needs the same master key (and any
+  `previous_keys`); without it, the server refuses to start. Keep the key with
+  your backups, but not inside them.
+</Callout>
+
+## Automate it
+
+Run it from cron or a systemd timer, with a dated directory:
+
+```sh title="/etc/cron.d/aether-backup"
+# min hour day month weekday user command
+30 2 * * * aether aether --config /etc/aether/aether.toml backup /mnt/backups/aether-$(date +\%F)
+```
+
+Delete old backups yourself; Aether does not rotate them.

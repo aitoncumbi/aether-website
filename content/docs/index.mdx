@@ -10,13 +10,14 @@ standard S3 client tools.
 
 A single node works with the AWS SDKs, the AWS CLI, boto3 and rclone. It
 supports multipart uploads, server-side copies, per-application access keys,
-HTTPS, Prometheus metrics, a Docker image and a web console.
+HTTPS, Prometheus metrics, a Docker image and a web console, and since v2
+versioning, lifecycle rules, object tags and encryption (SSE-S3 and SSE-C).
 
 <Callout title="Status">
-  The v1 milestones are complete, but Aether is not yet proven in production. CI
-  drives the clients above against a live server and runs 247 of Ceph's
-  s3-tests. It is a single node with no replication yet, so back up the data
-  directory.
+  The v1, v2 and v2.1 milestones are complete, but Aether is not yet proven in production. CI
+  drives the clients above against a live server and runs 334 of Ceph's
+  s3-tests. It is a single node with no replication yet, so
+  [back it up](/docs/backups).
 </Callout>
 
 <Cards>

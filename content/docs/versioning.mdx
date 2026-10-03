@@ -1,0 +1,73 @@
+---
+title: Versioning
+description: Keep every version of an object, so overwrites and deletes can be undone.
+---
+
+Buckets start unversioned: an overwrite replaces the object and a delete
+removes it. With versioning on, both keep the previous version, so it can be
+read or restored later.
+
+## Turn it on
+
+```sh
+aether bucket versioning invoices enable     # or: suspend
+aether bucket show invoices                  # state, and the size of older versions
+```
+
+In the [web console](/docs/web-console), use the **Versioning** setting on the
+bucket's page. With an S3 client:
+
+```sh
+aws --endpoint-url http://localhost:9000 s3api put-bucket-versioning \
+  --bucket invoices --versioning-configuration Status=Enabled
+```
+
+As in S3, versioning can be suspended but never turned off again. While it is
+suspended, writes replace the `null` version and older versions are kept.
+Changing it takes owner rights on the bucket.
+
+## Work with versions
+
+```sh
+aws --endpoint-url http://localhost:9000 s3api list-object-versions --bucket invoices --prefix 2026/
+aws --endpoint-url http://localhost:9000 s3api get-object --bucket invoices --key 2026/q3.pdf \
+  --version-id 0192f4c7a1b27e3c9d5e8f0a1b2c3d4e q3-old.pdf
+```
+
+- **Deleting** without a version id adds a *delete marker*: the key looks gone
+  (GET answers 404), but every version is still there.
+- **Restoring** a version means copying it over the key (`copy-object` with
+  `--copy-source invoices/2026/q3.pdf?versionId=...`), or deleting the newer
+  versions or the delete marker. The [web console](#in-the-web-console) does it
+  in one click.
+- **Deleting a version** by id removes it for good. If it was the current
+  version, the next older one becomes current.
+- Version ids are 32 hex digits. Objects written before versioning was enabled
+  have the version id `null`.
+
+<Callout type="warn">
+  Deleting a specific version is permanent, and needs only write rights on the
+  bucket, as in S3. Give applications that should never destroy data their own
+  read-only or write-only keys.
+</Callout>
+
+## In the web console
+
+In a versioned bucket, an object's details list its versions, newest first.
+Each one can be downloaded, **restored** (copied over the key, so the history
+is kept), or deleted for good.
+
+Deleted objects disappear from the list. **Deleted objects**, next to the
+filter, lists the keys in the current folder that are hidden by a delete
+marker. Open one and restore a version to bring it back.
+
+## Space
+
+Older versions take space until they are deleted. `aether bucket show` and the
+console show how many there are and their size. The bucket's
+[quota](/docs/buckets#quotas) size limit counts them, while its object limit
+counts current objects only. To remove older versions automatically, add a
+[lifecycle rule](/docs/lifecycle) with `NoncurrentVersionExpiration`.
+
+A versioned bucket can be deleted only once every version and delete marker is
+gone.

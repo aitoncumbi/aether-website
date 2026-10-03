@@ -1,0 +1,86 @@
+---
+title: Lifecycle and tags
+description: Expire objects, older versions and abandoned uploads automatically, and tag objects.
+---
+
+Lifecycle rules delete data on a schedule: logs after 30 days, older versions
+after a week, uploads that were never completed. They are set with the S3 API,
+and the [web console](/docs/web-console) lists them on the bucket's page.
+
+## Set rules
+
+```json title="lifecycle.json"
+{
+  "Rules": [
+    {
+      "ID": "logs",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "logs/" },
+      "Expiration": { "Days": 30 }
+    },
+    {
+      "ID": "old-versions",
+      "Status": "Enabled",
+      "Filter": {},
+      "NoncurrentVersionExpiration": { "NoncurrentDays": 7, "NewerNoncurrentVersions": 2 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 3 }
+    }
+  ]
+}
+```
+
+```sh
+aws --endpoint-url http://localhost:9000 s3api put-bucket-lifecycle-configuration \
+  --bucket invoices --lifecycle-configuration file://lifecycle.json
+aws --endpoint-url http://localhost:9000 s3api get-bucket-lifecycle-configuration --bucket invoices
+aws --endpoint-url http://localhost:9000 s3api delete-bucket-lifecycle --bucket invoices
+```
+
+Changing rules takes owner rights on the bucket.
+
+## What a rule can do
+
+- **Filter** by prefix, by [tags](#object-tags) and by object size
+  (`ObjectSizeGreaterThan`, `ObjectSizeLessThan`). Use `And` to combine them;
+  every condition must hold.
+- **`Expiration`**: delete current objects a number of `Days` after they were
+  written, or on a `Date`. In a [versioned](/docs/versioning) bucket this adds a
+  delete marker, as a plain delete does. `ExpiredObjectDeleteMarker` removes
+  delete markers that no longer hide any version.
+- **`NoncurrentVersionExpiration`**: delete older versions `NoncurrentDays` after
+  they were replaced, optionally keeping the newest `NewerNoncurrentVersions`.
+- **`AbortIncompleteMultipartUpload`**: abort uploads that were not completed
+  within `DaysAfterInitiation` days, and delete their parts.
+
+Up to 1000 rules per bucket. Transitions to other storage classes fail with
+`NotImplemented`, because Aether has one storage class.
+
+## When rules run
+
+A background job applies every bucket's rules once an hour
+(`lifecycle.interval_secs`, see [Configuration](/docs/configuration#lifecycle)).
+Days are counted from the time an object was written. Unlike S3, Aether does not
+round up to the next midnight UTC.
+
+Each deletion is checked against the object it was decided on, so an object
+written while the job runs is never removed by mistake.
+
+## Object tags
+
+Tags are key-value pairs on an object, up to 10 per object, and are mostly used
+to select objects in lifecycle rules.
+
+```sh
+aws --endpoint-url http://localhost:9000 s3api put-object --bucket invoices --key tmp/export.csv \
+  --body export.csv --tagging "retention=short&team=billing"
+aws --endpoint-url http://localhost:9000 s3api put-object-tagging --bucket invoices --key tmp/export.csv \
+  --tagging 'TagSet=[{Key=retention,Value=short}]'
+aws --endpoint-url http://localhost:9000 s3api get-object-tagging --bucket invoices --key tmp/export.csv
+```
+
+- Tags can be set on upload (PUT and multipart), copied with the object (or
+  replaced with `--tagging-directive REPLACE`), or changed later. Changing them
+  does not rewrite the data.
+- Keys that can read the object can read its tags. Changing tags needs write
+  rights.
+- The console shows an object's tags in its details.

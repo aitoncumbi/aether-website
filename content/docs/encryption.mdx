@@ -1,0 +1,86 @@
+---
+title: Encryption
+description: Encrypt objects at rest with a server key (SSE-S3) or with the client's own key (SSE-C).
+---
+
+Aether can encrypt object data in two ways:
+
+- **At rest, with a server key (SSE-S3):** one setting, and every new object
+  is encrypted. Clients change nothing.
+- **With the client's key (SSE-C):** the client sends a key with each request,
+  and the server stores nothing that could decrypt the data.
+
+Both use AES-256-GCM. Checksums, ETags and range reads work as usual.
+
+## At rest (SSE-S3)
+
+Generate a master key and give it to the server:
+
+```sh
+openssl rand -base64 32      # store it apart from the data directory
+AETHER_ENCRYPTION__MASTER_KEY=<that value> aether
+```
+
+With Docker, add `AETHER_ENCRYPTION__MASTER_KEY` to `.env`.
+
+- **New objects only.** Every object written from then on is encrypted.
+  Objects written before stay as they were until they are overwritten.
+- **Secrets too.** The secrets of access keys are also encrypted in the
+  metadata, so a copy of the database alone does not reveal working keys.
+- **Clients.** Responses for encrypted objects carry
+  `x-amz-server-side-encryption: AES256`, and `GetBucketEncryption` reports
+  SSE-S3. The console marks encrypted objects.
+
+<Callout type="error" title="Losing the master key loses the data">
+  Back the master key up somewhere other than the data directory and its
+  backups. Without it, encrypted objects cannot be read.
+</Callout>
+
+### Rotating the key
+
+Set a new master key and move the old one to `previous_keys`:
+
+```toml title="aether.toml"
+[encryption]
+master_key = "<new key>"          # or AETHER_ENCRYPTION__MASTER_KEY
+previous_keys = ["<old key>"]     # or AETHER_ENCRYPTION__PREVIOUS_KEYS='["<old key>"]'
+```
+
+New objects use the new key, and objects encrypted with the old one stay
+readable. They are not re-encrypted, so keep the old key listed. The server
+refuses to start if a key that encrypted stored data is missing, rather than
+failing on every read.
+
+## With the client's key (SSE-C)
+
+The client sends a 256-bit key, base64-encoded, with every request for the
+object. Aether encrypts the object with it and keeps only a salted HMAC of the
+key, enough to recognise the key but not to recover it.
+
+```sh
+openssl rand 32 > sse.key
+aws --endpoint-url https://s3.example.com s3 cp report.pdf s3://reports/ --sse-c AES256 --sse-c-key fileb://sse.key
+aws --endpoint-url https://s3.example.com s3 cp s3://reports/report.pdf . --sse-c AES256 --sse-c-key fileb://sse.key
+```
+
+```python
+s3.put_object(Bucket="reports", Key="report.pdf", Body=data,
+              SSECustomerAlgorithm="AES256", SSECustomerKey=key)  # key: 32 bytes
+s3.get_object(Bucket="reports", Key="report.pdf",
+              SSECustomerAlgorithm="AES256", SSECustomerKey=key)
+```
+
+- **Every read needs the key**, including GET, HEAD, copies and each part of a
+  multipart upload. A missing or wrong key fails with 400 `InvalidRequest`.
+- **Copies re-encrypt.** Give the source key (`--sse-c-copy-source-key`) and,
+  optionally, a new key, to change the key or to store the copy unencrypted.
+- **HTTPS only.** The key travels in request headers, so Aether refuses SSE-C
+  over plain HTTP. Behind a proxy that terminates TLS, set
+  `s3.allow_sse_c_over_http = true`. See [HTTPS](/docs/https).
+- **Not in the console.** The console never has the key, so it cannot download
+  SSE-C objects or make share links for them. It marks them in the object's
+  details.
+- **Losing the key loses the object.** Aether cannot help recover it.
+
+SSE-C works with or without a master key. SSE-KMS (keys held in a key
+management service) is not supported.

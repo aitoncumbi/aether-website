@@ -3,7 +3,7 @@ title: Compatibility
 description: What works today, and what is not supported yet.
 ---
 
-CI drives the AWS CLI v2, boto3 and rclone against a live server, and runs 247
+CI drives the AWS CLI v2, boto3 and rclone against a live server, and runs 334
 of Ceph's [s3-tests](https://github.com/ceph/s3-tests).
 
 ## Limitations
@@ -15,10 +15,13 @@ of Ceph's [s3-tests](https://github.com/ceph/s3-tests).
 - **Path-style addressing by default** (`http://host:9000/bucket/key`).
   Virtual-hosted style (`http://bucket.s3.example.com/key`) needs a base domain
   in `s3.domains`; see [Connect clients](/docs/connect-clients#virtual-hosted-style).
-- **Not supported yet:** versioning, server-side encryption, object tagging and
-  lifecycle rules (v2 on the roadmap); ACLs and bucket policies
-  (per-key bucket permissions replace them); object lock; browser POST uploads.
+- **Supported since v2:** [versioning](/docs/versioning),
+  [lifecycle rules and object tags](/docs/lifecycle), and
+  [encryption](/docs/encryption) with SSE-S3 and SSE-C.
+- **Not supported yet:** SSE-KMS; lifecycle transitions (Aether has one storage
+  class); object lock; ACLs and bucket policies
+  (per-key bucket permissions replace them); browser POST uploads.
   Requests that need these fail with `NotImplemented` rather than being ignored.
-- **One node only:** no replication yet, so back up the data directory. See the
+- **One node only:** no replication yet, so [back it up](/docs/backups). See the
   [roadmap](https://github.com/aitoncumbi/Aeather/blob/main/docs/ROADMAP.md) for
   clustering.
