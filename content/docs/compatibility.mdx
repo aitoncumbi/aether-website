@@ -3,7 +3,7 @@ title: Compatibility
 description: What works today, and what is not supported yet.
 ---
 
-CI drives the AWS CLI v2, boto3 and rclone against a live server, and runs 321
+CI drives the AWS CLI v2, boto3 and rclone against a live server, and runs 334
 of Ceph's [s3-tests](https://github.com/ceph/s3-tests).
 
 ## Limitations
@@ -22,6 +22,6 @@ of Ceph's [s3-tests](https://github.com/ceph/s3-tests).
   class); object lock; ACLs and bucket policies
   (per-key bucket permissions replace them); browser POST uploads.
   Requests that need these fail with `NotImplemented` rather than being ignored.
-- **One node only:** no replication yet, so back up the data directory. See the
+- **One node only:** no replication yet, so [back it up](/docs/backups). See the
   [roadmap](https://github.com/aitoncumbi/Aeather/blob/main/docs/ROADMAP.md) for
   clustering.

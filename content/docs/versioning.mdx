@@ -38,7 +38,8 @@ aws --endpoint-url http://localhost:9000 s3api get-object --bucket invoices --ke
   (GET answers 404), but every version is still there.
 - **Restoring** a version means copying it over the key (`copy-object` with
   `--copy-source invoices/2026/q3.pdf?versionId=...`), or deleting the newer
-  versions or the delete marker.
+  versions or the delete marker. The [web console](#in-the-web-console) does it
+  in one click.
 - **Deleting a version** by id removes it for good. If it was the current
   version, the next older one becomes current.
 - Version ids are 32 hex digits. Objects written before versioning was enabled
@@ -49,6 +50,16 @@ aws --endpoint-url http://localhost:9000 s3api get-object --bucket invoices --ke
   bucket, as in S3. Give applications that should never destroy data their own
   read-only or write-only keys.
 </Callout>
+
+## In the web console
+
+In a versioned bucket, an object's details list its versions, newest first.
+Each one can be downloaded, **restored** (copied over the key, so the history
+is kept), or deleted for good.
+
+Deleted objects disappear from the list. **Deleted objects**, next to the
+filter, lists the keys in the current folder that are hidden by a delete
+marker. Open one and restore a version to bring it back.
 
 ## Space
 
