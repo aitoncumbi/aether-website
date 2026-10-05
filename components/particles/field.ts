@@ -14,8 +14,8 @@ import * as THREE from 'three';
 type Vec = [number, number, number];
 type Stop = { shape: number; x: number; s: number };
 // A point, with an optional motion: 0 < w < 10 orbits about the y axis at that rate,
-// w >= 10 spins about the z axis at w - 10, w < 0 spirals in toward the centre.
-// Plain points stay put.
+// w >= 10 is on the black hole's photon ring, turning at w - 10, and w < 0 spirals in
+// toward the centre. Plain points stay put.
 type Pt = Vec | [number, number, number, number];
 type Form = { nodes: Pt[]; body: () => Pt };
 
@@ -58,8 +58,9 @@ function lattice(c: Vec, r: number) {
   return { nodes, lines };
 }
 
-// 0: a black hole: a dark centre, a thin photon ring, a disk that orbits faster
-// the closer it is, a halo bent over the top, and streams of data spiralling in.
+// 0: a black hole: a dark sphere outlined by its photon ring, a disk that orbits
+// faster the closer it is, and streams of data spiralling in. The shader bends the
+// light of everything behind the sphere around it (see `lens`).
 function holeForm(): Form {
   const ring = (r: number, w: number, y = 0.02): Pt => {
     const a = rand() * TAU;
@@ -69,10 +70,11 @@ function holeForm(): Form {
     const r = 1.45 + rand() ** 2 * 3.2;
     return ring(r, 1.6 / r ** 1.5, 0.05 * r);
   };
-  // The halo turns in its own plane, like the photon ring turns in the disk's.
-  const halo = (r: number): Pt => {
+  // The photon ring always faces the camera, so it only stores an angle and a radius
+  // relative to the shadow's edge; the shader places it and turns it.
+  const photon = (r: number): Pt => {
     const a = rand() * TAU;
-    return [Math.cos(a) * r, Math.sin(a) * r, jit(0.05), 10.6];
+    return [Math.cos(a) * r, Math.sin(a) * r, 0, 10.5];
   };
   // A stream point stores only its arm's angle; the shader moves it along the spiral.
   const stream = (): Pt => {
@@ -81,16 +83,15 @@ function holeForm(): Form {
   };
   return {
     nodes: [
-      ...Array.from({ length: 24 }, () => ring(1.15, 1.1)),
-      ...Array.from({ length: 12 }, () => halo(1.3)),
-      ...Array.from({ length: 20 }, disk),
+      ...Array.from({ length: 14 }, () => photon(1)),
+      ...Array.from({ length: 42 }, disk),
       ...Array.from({ length: 40 }, stream),
     ],
     body() {
       const k = rand();
-      if (k < 0.14) return ring(1.15 + jit(0.06), 1.1);
-      if (k < 0.62) return disk();
-      if (k < 0.7) return halo(1.3 + rand() ** 3 * 0.25);
+      if (k < 0.12) return photon(1 + jit(0.06));
+      if (k < 0.22) return photon(1 + rand() ** 2 * 0.4); // a soft glow just outside it
+      if (k < 0.68) return disk();
       return stream();
     },
   };
@@ -283,15 +284,12 @@ function sample(n: number, form: Form) {
 const VERT = /* glsl */ `
 attribute vec4 pA, pB; // xyz, and w: the motion
 attribute vec3 rnd; // seed, size, tint
-uniform float uT, uTime, uSize, uMoving;
+uniform float uT, uTime, uSize, uMoving, uLens, uRE;
 varying float vAlpha, vNode, vTint;
 
 // Where a point is now, and how visible: orbits turn, streams spiral in and fade at both ends.
 vec4 flow(vec4 p) {
-  if (p.w >= 10.0) {
-    float a = uTime * (p.w - 10.0);
-    return vec4(cos(a) * p.x - sin(a) * p.y, sin(a) * p.x + cos(a) * p.y, p.z, 1.0);
-  }
+  if (p.w >= 10.0) return vec4(p.xyz, 1.0); // placed by lens()
   if (p.w > 0.0) {
     float a = uTime * p.w;
     return vec4(cos(a) * p.x - sin(a) * p.z, p.y, sin(a) * p.x + cos(a) * p.z, 1.0);
@@ -305,6 +303,45 @@ vec4 flow(vec4 p) {
   return vec4(p.xyz, 1.0);
 }
 
+// The black hole sits at the model's origin; S is its shadow's radius on screen and
+// E the Einstein radius, both as angles seen from the camera.
+//
+// Photon-ring points are drawn on a circle facing the camera just outside the shadow,
+// so it reads as a sphere from any angle. It turns, and is brighter on the side
+// coming toward you.
+//
+// A point behind the hole, at angle b from its centre, is seen at the thin-lens image
+// (b + sqrt(b^2 + 4 E^2)) / 2: always outside E, so the shadow stays dark and the far
+// side of the disk bends up over it. Some points show the fainter second image on
+// the other side, kept in a thin band hugging the bottom of the shadow.
+vec3 lens(vec3 v, float photon, vec4 pp, out float dim) {
+  dim = 1.0;
+  vec3 c = (modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+  float e = uRE / -c.z;
+  float sh = 0.9 * e;
+
+  if (photon > 0.0) {
+    float a = atan(pp.y, pp.x) + uTime * (pp.w - 10.0);
+    float r = length(pp.xy);
+    vec3 ring = c + vec3(cos(a), sin(a), 0.0) * sh * -c.z * r;
+    float k = photon * uLens;
+    dim = mix(1.0, (0.45 + 0.55 * (0.5 + 0.5 * cos(a))) * pow(1.0 / r, 4.0), k);
+    return mix(v, ring, k);
+  }
+
+  float behind = uLens * smoothstep(0.0, 0.6, c.z - v.z);
+  if (behind <= 0.0) return v;
+  vec2 u = v.xy / -v.z;
+  vec2 uc = c.xy / -c.z;
+  vec2 d = u - uc;
+  float b = max(length(d), 1e-4);
+  float root = sqrt(b * b + 4.0 * e * e);
+  bool second = rnd.x < 0.22;
+  float img = second ? -(sh + (e - abs(b - root) * 0.5) * 0.4) : (b + root) * 0.5;
+  if (second) dim = mix(1.0, 0.75, behind);
+  return vec3(mix(v.xy, (uc + d / b * img) * -v.z, behind), v.z);
+}
+
 void main() {
   // Each point leaves a little later than the last, and bursts outward on the way.
   float t = smoothstep(0.0, 1.0, clamp((uT - rnd.x * 0.35) / 0.65, 0.0, 1.0));
@@ -316,11 +353,14 @@ void main() {
 
   vNode = step(5.0, rnd.y); // nodes are marked by their size
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+  float dim;
+  float photon = mix(step(10.0, pA.w), step(10.0, pB.w), t);
+  mv.xyz = lens(mv.xyz, photon, pA.w >= 10.0 ? pA : pB, dim);
   gl_Position = projectionMatrix * mv;
   gl_PointSize = uSize * rnd.y / -mv.z;
   vTint = max(rnd.z, 0.8 * mix(step(pA.w, -0.5), step(pB.w, -0.5), t)); // data streams glow cool
   // Nodes breathe; dust fades with distance.
-  vAlpha = smoothstep(28.0, 6.0, -mv.z) * (vNode > 0.5 ? 0.8 + 0.2 * sin(uTime * 2.0 + rnd.x * 30.0) : 0.55) * q.w;
+  vAlpha = smoothstep(28.0, 6.0, -mv.z) * (vNode > 0.5 ? 0.8 + 0.2 * sin(uTime * 2.0 + rnd.x * 30.0) : 0.55) * q.w * dim;
 }`;
 
 const FRAG = /* glsl */ `
@@ -348,7 +388,7 @@ export function createField(canvas: HTMLCanvasElement) {
   const material = new THREE.ShaderMaterial({
     vertexShader: VERT,
     fragmentShader: FRAG,
-    uniforms: { uMoving: { value: 0 }, uT: { value: 0 }, uTime: { value: 0 }, uSize: { value: 1 } },
+    uniforms: { uMoving: { value: 0 }, uLens: { value: 0 }, uRE: { value: 1 }, uT: { value: 0 }, uTime: { value: 0 }, uSize: { value: 1 } },
     transparent: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
@@ -429,12 +469,15 @@ export function createField(canvas: HTMLCanvasElement) {
     u.uMoving.value = a.shape === b.shape ? 0 : 1;
     u.uT.value = t;
     u.uTime.value = time;
-    if (counter && near !== shown) counter.textContent = `${pad((shown = near) + 1)} — ${pad(stops.length)}`;
+    if (counter && near !== shown) counter.textContent = `${pad((shown = near) + 1)} / ${pad(stops.length)}`;
 
     const e = ease(t);
     // On phones the form sits centred behind the text.
     form.position.x = small ? 0 : (a.x + (b.x - a.x) * e) * halfW;
     form.scale.setScalar((a.s + (b.s - a.s) * e) * (small ? 0.7 : 1));
+    // Light bends only around the black hole (form 0).
+    u.uLens.value = (a.shape === 0 ? 1 - e : 0) + (b.shape === 0 ? e : 0);
+    u.uRE.value = 1.1 * form.scale.x;
     // A three-quarter view that sways a little and leans toward the pointer.
     form.rotation.y += (-0.55 + Math.sin(time * 0.15) * 0.25 + mouse.x * 0.4 - form.rotation.y) * 0.05;
     form.rotation.x += (0.22 + mouse.y * 0.25 - form.rotation.x) * 0.05;

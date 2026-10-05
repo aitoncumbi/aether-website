@@ -86,13 +86,12 @@ const stop = 'relative flex min-h-svh items-center py-28';
 const left = `reveal w-full max-w-md ${card}`;
 const right = `${left} md:ml-auto`;
 
-/** Small mono marker above a heading: a name, a rule and a number. */
-function Label({ n, children }: { n: number; children: string }) {
+/** Small mono marker above a heading, used on a few sections only. */
+function Label({ children }: { children: string }) {
   return (
     <p className="mb-6 flex items-center gap-4 font-mono text-[11px] tracking-[0.2em] text-white/50 uppercase">
       {children}
       <span className="h-px w-8 bg-white/30" />
-      {String(n).padStart(2, '0')}
     </p>
   );
 }
@@ -175,11 +174,12 @@ export default function HomePage() {
               ['One Rust binary', '40%', '86%'],
             ]}
           />
-          <div className={`reveal max-w-xl ${card}`}>
-            <Label n={1}>Aether //</Label>
-            <h1 className="text-5xl leading-[0.95] font-normal tracking-[-0.04em] uppercase md:text-[4.5rem]">
+          <div className={`reveal max-w-2xl ${card}`}>
+            <Label>Aether //</Label>
+            {/* Two lines on desktop: the phrase never wraps there, so the size is set to fit the longest. */}
+            <h1 className="text-4xl leading-[1] font-normal tracking-[-0.04em] uppercase md:text-[clamp(2.25rem,4.2vw,3.5rem)]">
               <span className="block">Object storage</span>
-              <span className="block min-h-[2em] text-white/55">
+              <span className="block min-h-[2em] text-white/55 md:min-h-[1em] md:whitespace-nowrap">
                 <SwapText
                   phrases={[
                     'on your own servers.',
@@ -213,7 +213,6 @@ export default function HomePage() {
             ]}
           />
           <div className={right}>
-            <Label n={2}>Manifesto //</Label>
             <ScrubText
               className="font-mono text-base leading-[1.5] tracking-[0.06em] text-white/90 uppercase md:text-lg"
               text="One binary that stores, verifies and recovers every object. No cluster to stand up and no cloud account to open: your servers, your disks, and the S3 API every client already speaks."
@@ -236,7 +235,6 @@ export default function HomePage() {
             ]}
           />
           <div className={`reveal max-w-xl ${card}`}>
-            <Label n={3}>Integrity //</Label>
             <h2 className={h2}>
               Built from immutable blocks
               <br />
@@ -267,7 +265,6 @@ export default function HomePage() {
         <section data-shape="3" data-x="-0.45" className={stop}>
           <Notes items={[['AES-256-GCM at rest', '24%', '10%']]} />
           <div className={right}>
-            <Label n={4}>Encryption //</Label>
             <h2 className={h2}>
               Unreadable on disk.
               <br />
@@ -306,14 +303,13 @@ export default function HomePage() {
 
         {/* Console: its parts fly in from depth and build the page as you scroll */}
         <Console3D>
-          <Label n={5}>Console //</Label>
+          <Label>Console //</Label>
           <h2 className={`max-w-2xl ${h2}`}>Buckets, objects and keys, without the CLI.</h2>
         </Console3D>
 
         {/* Works with: clients on orbits around one core */}
         <section data-shape="4" data-s="1.3" className="relative flex min-h-svh flex-col items-center justify-center py-32 text-center">
           <div className={`reveal ${card}`}>
-            <Label n={6}>Works with //</Label>
             <p className="mx-auto max-w-4xl text-3xl leading-[1.15] font-normal tracking-tight text-balance uppercase [text-shadow:0_0_24px_#000] md:text-5xl">
               AWS CLI, AWS SDKs, boto3 and rclone, plus <span className="text-[#9ff4ff]">334</span> of Ceph&apos;s
               s3-tests, run against a live server in CI.
@@ -335,7 +331,6 @@ export default function HomePage() {
             ]}
           />
           <div className={left}>
-            <Label n={7}>Benchmarks //</Label>
             <h2 className={h2}>
               Measured on a small VM,
               <br />
@@ -397,7 +392,6 @@ export default function HomePage() {
         <section data-shape="6" data-x="-0.42" data-s="0.95" className={stop}>
           <Notes items={[['One key per application', '24%', '8%']]} />
           <div className={right}>
-            <Label n={8}>Operations //</Label>
             <h2 className={h2}>
               And the parts you need
               <br />
@@ -425,7 +419,7 @@ export default function HomePage() {
         {/* Status: a timeline of milestones, the last still dashed */}
         <section data-shape="7" data-x="0.25" data-s="0.8" className="relative flex min-h-svh flex-col justify-between py-28">
           <div className={`reveal max-w-xl ${card}`}>
-            <Label n={9}>Status //</Label>
+            <Label>Status //</Label>
             <h2 className={h2}>Honest about maturity.</h2>
             <div className={body}>
               <p>Complete for a single node, but not yet proven in production. No replication yet, so back it up.</p>

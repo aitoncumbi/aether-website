@@ -38,20 +38,14 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         </div>
       </header>
 
-      {/* Section counter and scroll hint, fixed at the edges like a viewfinder. */}
+      {/* Section counter, fixed at the edge like a viewfinder. */}
       <p
         id="section-counter"
         aria-hidden
         className={`${mono} fixed top-1/2 left-3 z-40 -translate-y-1/2 rotate-180 [writing-mode:vertical-rl] max-md:hidden`}
       >
-        001 — 009
+        001 / 009
       </p>
-      <div className={`${mono} pointer-events-none fixed inset-x-0 bottom-0 z-40 max-md:hidden`}>
-        <div className="mx-auto flex max-w-7xl justify-between px-12 py-5">
-          <span>↓ Scroll</span>
-          <span>v2.1 · Single node</span>
-        </div>
-      </div>
       {children}
     </div>
   );
