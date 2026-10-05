@@ -16,7 +16,8 @@ export function baseOptions(): BaseLayoutProps {
       title: (
         <>
           <LogoMark />
-          <span className="font-semibold">{appName}</span>
+          <span className="text-sm font-medium tracking-[0.12em] uppercase">{appName}</span>
+          <span className="font-mono text-[10px] tracking-[0.2em] text-fd-muted-foreground">/ S3</span>
         </>
       ),
     },

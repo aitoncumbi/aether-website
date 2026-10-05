@@ -1,31 +1,371 @@
 @import 'tailwindcss';
-@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/black.css';
 @import 'fumadocs-ui/css/preset.css';
 
-/* The console's palette: zinc surfaces and one blue accent. The accent is darker
-   in light mode so text and buttons keep at least 4.5:1 contrast. */
+/* Palette, after the landing page: black, white and greys, with one cool cyan
+   accent. The accent is darker in light mode so text and buttons keep at least
+   4.5:1 contrast. */
 @theme {
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --color-fd-primary: #1f63c4;
+  --color-fd-primary: #0e7490;
   --color-fd-primary-foreground: #fafafa;
 }
 
 .dark {
-  --color-fd-background: #09090b;
-  --color-fd-card: #111113;
-  --color-fd-popover: #111113;
-  --color-fd-muted: #18181b;
-  --color-fd-secondary: #18181b;
-  --color-fd-primary: #3987e5;
-  --color-fd-primary-foreground: #09090b;
+  --color-fd-background: #000;
+  --color-fd-card: #0a0a0a;
+  --color-fd-popover: #0a0a0a;
+  --color-fd-muted: #111;
+  --color-fd-secondary: #141414;
+  --color-fd-primary: #9ff4ff;
+  --color-fd-primary-foreground: #000;
 }
 
 html {
   scrollbar-gutter: stable;
+  accent-color: #0e7490; /* checkboxes, radios and range inputs */
+}
+
+::selection {
+  background: rgb(159 244 255 / 0.3);
+  color: inherit;
 }
 
 html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    /* Benchmark bars grow from the axis as they come into view. */
+    .grow-bar {
+      transform-origin: left;
+      animation: grow linear both;
+      animation-timeline: view();
+      animation-range: entry 20% cover 40%;
+    }
+  }
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* ---- Glow ---- */
+.glow-text {
+  /* A slight warm split plus an amber bloom, like light off the accretion ring. */
+  text-shadow:
+    -1px 0 rgb(255 74 28 / 0.55),
+    1px 0 rgb(255 196 107 / 0.55),
+    0 0 20px rgb(255 138 30 / 0.6);
+}
+.glow-bar {
+  box-shadow:
+    0 0 24px rgb(255 138 30 / 0.6),
+    inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+
+
+/* ---- Landing scene ---- */
+
+/* "Verifying blocks" preloader. The fallback animation hides it after 4 s
+   even if JavaScript never runs. */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  background: #080604;
+  animation: loader-fallback 0.4s 4s forwards;
+  transition:
+    opacity 0.6s ease,
+    visibility 0.6s;
+}
+.loader-cell.filled {
+  background: linear-gradient(135deg, #ffc46b, #ff8a1e 55%, #ff4a1c);
+  box-shadow: 0 0 10px #ff8a1e;
+}
+.loader-done {
+  opacity: 0;
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader {
+    display: none;
+  }
+}
+@keyframes loader-fallback {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Labels pinned to points in the 3D scene; positioned by the scene each frame. */
+.pin {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  will-change: transform;
+}
+.pin[data-on='1'] {
+  opacity: 1;
+}
+.pin-dot {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffc46b;
+  box-shadow: 0 0 12px #ff8a1e;
+}
+.pin-line {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 1px;
+  background: rgb(255 196 107 / 0.6);
+  transform: rotate(-30deg);
+  transform-origin: 0 0;
+}
+.pin-text {
+  position: absolute;
+  left: 36px;
+  top: -34px;
+  white-space: nowrap;
+  border: 1px solid rgb(255 196 107 / 0.35);
+  background: rgb(8 6 4 / 0.75);
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #fff1d6;
+  backdrop-filter: blur(6px);
+}
+/* A soft dark pool behind text that sits over the scene. */
+@media (min-width: 768px) {
+  .panel {
+    position: relative;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: -18% -22%;
+    z-index: -1;
+    background: radial-gradient(closest-side, rgb(8 6 4 / 0.82), rgb(8 6 4 / 0.5) 60%, transparent);
+    pointer-events: none;
+  }
+}
+.pin[data-flip='1'] .pin-line {
+  transform: rotate(-150deg);
+}
+.pin[data-flip='1'] .pin-text {
+  left: auto;
+  right: 36px;
+}
+@media (max-width: 767px) {
+  .pin {
+    display: none;
+  }
+  /* On phones the scene sits behind the text, so the text gets a scrim. */
+  .panel {
+    border-radius: 12px;
+    background: rgb(8 6 4 / 0.55);
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+}
+
+
+/* ---- Motion, after monopo ---- */
+
+/* Cycling tagline: each letter rises out of a blur, staggered by its index. */
+.swap span span {
+  display: inline-block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* Opacity and transform only, so the compositor runs it even when the page is busy. */
+  .swap span span {
+    animation: letter-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+/* Set by the scene on devices too slow to animate smoothly. */
+[data-lowfps] .swap span span,
+[data-lowfps] .badge-spin {
+  animation: none;
+}
+@keyframes letter-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.92);
+  }
+}
+
+/* Slowly turning badge. */
+@media (prefers-reduced-motion: no-preference) {
+  .badge-spin {
+    animation: spin 18s linear infinite;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scroll-driven: words light up, giant lines slide, columns drift. Without
+   support, or with reduced motion, everything is simply shown at rest. */
+.scrub {
+  opacity: 1;
+}
+.marquee {
+  font-size: clamp(3.5rem, 11vw, 10rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+.marquee > span {
+  display: inline-block;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .scrub {
+      opacity: 0.16;
+      animation: scrub-in linear both;
+      animation-timeline: view();
+      animation-range: cover 15% cover 40%;
+    }
+    .marquee > span {
+      animation: marquee linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+    .drift {
+      animation: drift linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+  }
+}
+@keyframes scrub-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes marquee {
+  from {
+    transform: translateX(8%);
+  }
+  to {
+    transform: translateX(-38%);
+  }
+}
+@keyframes drift {
+  from {
+    transform: translateY(70px);
+  }
+  to {
+    transform: translateY(-70px);
+  }
+}
+
+
+/* ---- Particle landing ---- */
+
+/* Text fades up as it arrives and away as it leaves. Without support, or with
+   reduced motion, it is simply shown. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+  }
+  .fade-in {
+    animation: fade-in 0.5s ease both;
+  }
+}
+@keyframes reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+  25%,
+  75% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+
+/* ---- Console in 3D ---- */
+
+/* The console's parts start scattered in depth and settle into place while the
+   section scrolls. Without support, or with reduced motion, it is simply built. */
+.console-scroll {
+  view-timeline-name: --console;
+}
+.console-stage {
+  perspective: 1400px;
+}
+.console-frame,
+.piece {
+  transform-style: preserve-3d;
+}
+.dot-floor {
+  background-image: radial-gradient(rgb(255 255 255 / 0.1) 1px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .console-frame {
+      animation: console-tilt linear both;
+      animation-timeline: --console;
+      animation-range: contain 0% contain 60%;
+    }
+    .piece {
+      animation: piece-in linear both;
+      animation-timeline: --console;
+      animation-range: contain var(--at) contain calc(var(--at) + 30%);
+    }
+    .console-tour {
+      animation: fade-in linear both;
+      animation-timeline: --console;
+      animation-range: contain 55% contain 70%;
+    }
+  }
+}
+@keyframes console-tilt {
+  from {
+    transform: rotateX(58deg) rotateZ(-10deg) scale(0.78);
+  }
+}
+@keyframes piece-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--x), var(--y), var(--z)) rotateY(var(--r));
+  }
 }
